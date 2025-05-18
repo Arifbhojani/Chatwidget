@@ -1,24 +1,4 @@
-    // Initialize the widget
-    function init() {
-        // Enable debug by pressing D + E + B + U + G keys in sequence
-        let debugSequence = "";
-        document.addEventListener('keydown', (e) => {
-            debugSequence += e.key.toLowerCase();
-            if (debugSequence.length > 5) {
-                debugSequence = debugSequence.substring(1);
-            }
-            if (debugSequence === "debug") {
-                debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-                logDebug("Debug mode " + (debugInfo.style.display === 'none' ? 'OFF' : 'ON'));
-            }
-        });
-        
-        // Check for existing session after a delay to allow page to load
-        setTimeout(checkExistingSession, 500);
-    }
-    
-    // Start the widget
-    init();// Interactive Chat Widget for n8n
+// Interactive Chat Widget for n8n
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -80,7 +60,7 @@
         }
 
         .chat-assist-widget .chat-window.visible {
-            display: flex !important;
+            display: flex;
             opacity: 1;
             transform: translateY(0) scale(1);
         }
@@ -372,7 +352,7 @@
         .chat-assist-widget .chat-launcher {
             position: fixed;
             bottom: 20px;
-            z-index: 999;
+            left: 20px;
             height: 60px;
             width: 60px;
             border-radius: var(--chat-radius-full);
@@ -381,19 +361,12 @@
             border: none;
             cursor: pointer;
             box-shadow: var(--chat-shadow-md);
+            z-index: 999;
             transition: var(--chat-transition);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-        }
-
-        .chat-assist-widget .chat-launcher.right-side {
-            right: 20px;
-        }
-
-        .chat-assist-widget .chat-launcher.left-side {
-            left: 20px;
         }
 
         .chat-assist-widget .chat-launcher:hover {
@@ -402,28 +375,13 @@
         }
 
         .chat-assist-widget .chat-launcher svg {
-            width: 30px;
-            height: 30px;
-            transition: transform 0.4s ease-in-out;
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
         }
         
         .chat-assist-widget .chat-launcher:hover svg {
-            transform: scale(1.1) rotate(10deg);
-        }
-
-        .chat-assist-widget .chat-launcher .chat-icon-background {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: var(--chat-radius-full);
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(0);
-            transition: transform 0.5s ease-out;
-        }
-        
-        .chat-assist-widget .chat-launcher:hover .chat-icon-background {
-            transform: scale(1.5);
-            opacity: 0;
+            transform: rotate(10deg);
         }
 
         .chat-assist-widget .suggested-questions {
@@ -599,14 +557,10 @@
             suggestedQuestions: window.ChatWidgetConfig.suggestedQuestions || defaultSettings.suggestedQuestions
         } : defaultSettings;
 
-    // Session tracking with improved persistence
-    let conversationId = localStorage.getItem('n8n_chat_session_id') || '';
+    // Simple session tracking with minimal persistence
+    let conversationId = '';
     let isWaitingForResponse = false;
-    let userName = localStorage.getItem('n8n_chat_user_name') || '';
-    let userEmail = localStorage.getItem('n8n_chat_user_email') || '';
-    let sessionActive = false;
-    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-    let sessionTimer = null;
+    let lastInteractionTime = Date.now();
 
     // Create widget DOM structure
     const widgetRoot = document.createElement('div');
@@ -623,47 +577,6 @@
     // Create chat panel
     const chatWindow = document.createElement('div');
     chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
-    
-    // Debug element to test visibility
-    const debugStyle = document.createElement('style');
-    debugStyle.textContent = `
-        .debug-info {
-            position: fixed;
-            bottom: 5px;
-            left: 5px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px;
-            font-size: 10px;
-            z-index: 9999;
-            border-radius: 3px;
-            display: none;
-        }
-    `;
-    document.head.appendChild(debugStyle);
-    
-    const debugInfo = document.createElement('div');
-    debugInfo.className = 'debug-info';
-    document.body.appendChild(debugInfo);
-    
-    // Debug function
-    function logDebug(message) {
-        console.log("Chat Debug:", message);
-        debugInfo.innerHTML += message + "<br>";
-        // Keep only the last 5 lines
-        const lines = debugInfo.innerHTML.split("<br>");
-        if (lines.length > 5) {
-            debugInfo.innerHTML = lines.slice(lines.length - 5).join("<br>");
-        }
-    }
-    
-    // Direct style fixes for the chat window for Safari and older browsers
-    chatWindow.style.position = "fixed";
-    chatWindow.style.bottom = "90px";
-    chatWindow.style.zIndex = "1000";
-    chatWindow.style.backgroundColor = settings.style.backgroundColor;
-    chatWindow.style.left = settings.style.position === 'left' ? "20px" : "auto";
-    chatWindow.style.right = settings.style.position === 'right' ? "20px" : "auto";
     
     // Extract first two letters for logo placeholder
     const logoLetters = settings.branding.name ? settings.branding.name.substring(0, 2).toUpperCase() : 'FC';
@@ -720,25 +633,13 @@
     
     chatWindow.innerHTML = welcomeScreenHTML + chatInterfaceHTML;
     
-    // Create toggle button with improved icon and animations
+    // Create toggle button with improved icon
     const launchButton = document.createElement('button');
-    launchButton.className = `chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
+    launchButton.className = 'chat-launcher';
     launchButton.innerHTML = `
-        <div class="chat-icon-background"></div>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v3c0 .6.4 1 1 1h.5c.2 0 .5-.1.7-.3L15 18h5c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
-            <circle cx="8.5" cy="10" r="1.5"></circle>
-            <circle cx="12" cy="10" r="1.5"></circle>
-            <circle cx="15.5" cy="10" r="1.5"></circle>
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>`;
-    
-    // Direct style fixes for Safari and older browsers
-    launchButton.style.zIndex = "999";
-    launchButton.style.position = "fixed";
-    launchButton.style.bottom = "20px";
-    launchButton.style.left = settings.style.position === 'left' ? "20px" : "auto";
-    launchButton.style.right = settings.style.position === 'right' ? "20px" : "auto";
-    launchButton.style.cursor = "pointer";
     
     // Add elements to DOM
     widgetRoot.appendChild(chatWindow);
@@ -763,53 +664,12 @@
 
     // Helper function to generate unique session ID
     function createSessionId() {
-        const newId = crypto.randomUUID();
-        localStorage.setItem('n8n_chat_session_id', newId);
-        return newId;
+        return crypto.randomUUID();
     }
-    
-    // Function to maintain session activity
-    function refreshSession() {
-        clearTimeout(sessionTimer);
-        sessionTimer = setTimeout(() => {
-            // Only ping if there's an active session
-            if (sessionActive && conversationId) {
-                pingSession();
-            }
-        }, SESSION_TIMEOUT / 2); // Refresh halfway through timeout period
-    }
-    
-    // Function to ping the server to keep session alive
-    async function pingSession() {
-        try {
-            const pingData = {
-                action: "pingSession",
-                sessionId: conversationId,
-                route: settings.webhook.route,
-                metadata: {
-                    userId: userEmail,
-                    userName: userName
-                }
-            };
-            
-            const response = await fetch(settings.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(pingData)
-            });
-            
-            if (response.ok) {
-                refreshSession(); // Continue the session
-            } else {
-                // Session may be invalid, but we'll keep trying
-                refreshSession();
-            }
-        } catch (error) {
-            console.warn('Session ping failed, will retry later:', error);
-            refreshSession(); // Try again later
-        }
+
+    // Helper function to update last interaction time
+    function updateLastInteraction() {
+        lastInteractionTime = Date.now();
     }
 
     // Create typing indicator element
@@ -846,114 +706,10 @@
         });
     }
 
-    // Check if there's a previous session to restore
-    function checkExistingSession() {
-        // If we have a saved session ID and user info
-        if (conversationId && userName && userEmail) {
-            // We'll only restore the session when the chat is opened
-            // This prevents the session check from interfering with window opening
-            console.log("Found existing session, will restore when chat is opened");
-        }
-    }
-    
-    // Restore a previous session
-    async function restoreSession() {
-        try {
-            // Show chat interface instead of welcome screen
-            chatWelcome.style.display = 'none';
-            userRegistration.classList.remove('active');
-            chatBody.classList.add('active');
-            
-            // Show typing indicator
-            const typingIndicator = createTypingIndicator();
-            messagesContainer.appendChild(typingIndicator);
-            
-            // Attempt to ping the session
-            const pingData = {
-                action: "pingSession",
-                sessionId: conversationId,
-                route: settings.webhook.route,
-                metadata: {
-                    userId: userEmail,
-                    userName: userName
-                }
-            };
-            
-            const response = await fetch(settings.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(pingData)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Could not restore previous session');
-            }
-            
-            // Session is active again
-            sessionActive = true;
-            refreshSession();
-            
-            // Remove typing indicator
-            if (messagesContainer.contains(typingIndicator)) {
-                messagesContainer.removeChild(typingIndicator);
-            }
-            
-            // Show welcome back message
-            const welcomeBackMessage = document.createElement('div');
-            welcomeBackMessage.className = 'chat-bubble bot-bubble';
-            welcomeBackMessage.textContent = `Welcome back, ${userName}! How can I help you today?`;
-            
-            // Add timestamp
-            const welcomeTimestamp = document.createElement('span');
-            welcomeTimestamp.className = 'message-timestamp';
-            welcomeTimestamp.textContent = formatTime();
-            welcomeBackMessage.appendChild(welcomeTimestamp);
-            
-            messagesContainer.appendChild(welcomeBackMessage);
-            
-            // Add sample questions if configured
-            if (settings.suggestedQuestions && Array.isArray(settings.suggestedQuestions) && settings.suggestedQuestions.length > 0) {
-                const suggestedQuestionsContainer = document.createElement('div');
-                suggestedQuestionsContainer.className = 'suggested-questions';
-                
-                settings.suggestedQuestions.forEach(question => {
-                    const questionButton = document.createElement('button');
-                    questionButton.className = 'suggested-question-btn';
-                    questionButton.textContent = question;
-                    questionButton.addEventListener('click', () => {
-                        submitMessage(question);
-                        // Remove the suggestions after clicking
-                        if (suggestedQuestionsContainer.parentNode) {
-                            suggestedQuestionsContainer.parentNode.removeChild(suggestedQuestionsContainer);
-                        }
-                    });
-                    suggestedQuestionsContainer.appendChild(questionButton);
-                });
-                
-                messagesContainer.appendChild(suggestedQuestionsContainer);
-            }
-            
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (error) {
-            console.log('Could not restore session:', error);
-            
-            // Remove typing indicator if exists
-            const indicator = messagesContainer.querySelector('.typing-indicator');
-            if (indicator) {
-                messagesContainer.removeChild(indicator);
-            }
-            
-            // Reset to initial state
-            chatBody.classList.remove('active');
-            chatWelcome.style.display = 'flex';
-            
-            // Clear cached session
-            localStorage.removeItem('n8n_chat_session_id');
-            conversationId = '';
-            sessionActive = false;
-        }
+    // Show registration form
+    function showRegistrationForm() {
+        chatWelcome.style.display = 'none';
+        userRegistration.classList.add('active');
     }
 
     // Validate email format
@@ -997,16 +753,9 @@
         
         if (!isValid) return;
         
-        // Save user info to localStorage for persistence
-        localStorage.setItem('n8n_chat_user_name', name);
-        localStorage.setItem('n8n_chat_user_email', email);
-        userName = name;
-        userEmail = email;
-        
-        // Initialize conversation with user data or retrieve existing
-        if (!conversationId) {
-            conversationId = createSessionId();
-        }
+        // Initialize conversation with user data
+        conversationId = createSessionId();
+        updateLastInteraction();
         
         // First, load the session
         const sessionData = [{
@@ -1037,10 +786,6 @@
                 body: JSON.stringify(sessionData)
             });
             
-            if (!sessionResponse.ok) {
-                throw new Error('Failed to load session');
-            }
-            
             const sessionResponseData = await sessionResponse.json();
             
             // Send user info as first message
@@ -1067,15 +812,8 @@
                 body: JSON.stringify(userInfoData)
             });
             
-            if (!userInfoResponse.ok) {
-                throw new Error('Failed to send user info');
-            }
-            
             const userInfoResponseData = await userInfoResponse.json();
-            
-            // Session is now active
-            sessionActive = true;
-            refreshSession();
+            updateLastInteraction();
             
             // Remove typing indicator
             messagesContainer.removeChild(typingIndicator);
@@ -1148,23 +886,11 @@
         if (isWaitingForResponse) return;
         
         isWaitingForResponse = true;
+        updateLastInteraction();
         
-        // Get user info from persistence
-        const email = userEmail || (nameInput ? nameInput.value.trim() : "");
-        const name = userName || (emailInput ? emailInput.value.trim() : "");
-        
-        // Check if we need to recreate session
-        if (!conversationId || !sessionActive) {
-            // Try to recreate session
-            conversationId = createSessionId();
-            
-            // Show registration form if no user info
-            if (!name || !email) {
-                showRegistrationForm();
-                isWaitingForResponse = false;
-                return;
-            }
-        }
+        // Get user info if available
+        const email = nameInput ? nameInput.value.trim() : "";
+        const name = emailInput ? emailInput.value.trim() : "";
         
         const requestData = {
             action: "sendMessage",
@@ -1173,7 +899,8 @@
             chatInput: messageText,
             metadata: {
                 userId: email,
-                userName: name
+                userName: name,
+                lastInteraction: lastInteractionTime
             }
         };
 
@@ -1204,24 +931,8 @@
                 body: JSON.stringify(requestData)
             });
             
-            // Check if session is still valid
-            if (!response.ok) {
-                const status = response.status;
-                
-                if (status === 401 || status === 403 || status === 404) {
-                    // Session expired or invalid
-                    sessionActive = false;
-                    throw new Error('Session expired or invalid');
-                }
-                
-                throw new Error(`Server responded with status: ${status}`);
-            }
-            
             const responseData = await response.json();
-            
-            // Session is active and working
-            sessionActive = true;
-            refreshSession();
+            updateLastInteraction();
             
             // Remove typing indicator
             messagesContainer.removeChild(typingIndicator);
@@ -1243,28 +954,13 @@
         } catch (error) {
             console.error('Message submission error:', error);
             
-            // Remove typing indicator if it exists
-            if (messagesContainer.contains(typingIndicator)) {
-                messagesContainer.removeChild(typingIndicator);
-            }
+            // Remove typing indicator
+            messagesContainer.removeChild(typingIndicator);
             
             // Show error message
             const errorMessage = document.createElement('div');
             errorMessage.className = 'chat-bubble bot-bubble';
-            
-            if (!sessionActive) {
-                // Session timeout message
-                errorMessage.textContent = "Your session has expired. Reconnecting...";
-                
-                // Try to reconnect
-                setTimeout(() => {
-                    // Clear messages and try to start a new session
-                    messagesContainer.innerHTML = '';
-                    handleRegistration({ preventDefault: () => {} });
-                }, 1500);
-            } else {
-                errorMessage.textContent = "Sorry, I couldn't send your message. Please try again.";
-            }
+            errorMessage.textContent = "Sorry, I couldn't send your message. Please try again.";
             
             // Add timestamp to error message
             const errorTimestamp = document.createElement('span');
@@ -1288,19 +984,6 @@
     // Event listeners
     startChatButton.addEventListener('click', showRegistrationForm);
     registrationForm.addEventListener('submit', handleRegistration);
-    
-    // Check for existing session when widget loads
-    window.addEventListener('load', checkExistingSession);
-    
-    // Update session before page unload
-    window.addEventListener('beforeunload', () => {
-        // If session is active, save it
-        if (sessionActive && conversationId) {
-            localStorage.setItem('n8n_chat_session_id', conversationId);
-            localStorage.setItem('n8n_chat_user_name', userName);
-            localStorage.setItem('n8n_chat_user_email', userEmail);
-        }
-    });
     
     sendButton.addEventListener('click', () => {
         const messageText = messageTextarea.value.trim();
@@ -1326,43 +1009,8 @@
     });
     
     launchButton.addEventListener('click', () => {
-        // Log debug info
-        logDebug("Launch button clicked");
-        
-        // Force display block first to ensure transition works
-        chatWindow.style.display = 'flex';
-        
-        // Force a reflow before adding the visible class
-        void chatWindow.offsetWidth;
-        
-        // Add visible class for animation
         chatWindow.classList.toggle('visible');
-        
-        // Log the state
-        logDebug("Is visible: " + chatWindow.classList.contains('visible'));
-        
-        // If window becomes visible
-        if (chatWindow.classList.contains('visible')) {
-            // If we have an active session or saved session data
-            if (sessionActive || (conversationId && userName && userEmail)) {
-                // Try to restore only if we have all the data and not already active
-                if (!sessionActive && conversationId && userName && userEmail) {
-                    setTimeout(() => {
-                        restoreSession();
-                    }, 100);
-                } else if (sessionActive) {
-                    // Just refresh the existing session
-                    refreshSession();
-                }
-            }
-        } else {
-            // If closing, set display to none after transition completes
-            setTimeout(() => {
-                if (!chatWindow.classList.contains('visible')) {
-                    chatWindow.style.display = 'none';
-                }
-            }, 300); // Match the transition duration
-        }
+        updateLastInteraction();
     });
 
     // Close button functionality
