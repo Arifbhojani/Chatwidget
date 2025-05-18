@@ -1,4 +1,24 @@
-// Interactive Chat Widget for n8n
+    // Initialize the widget
+    function init() {
+        // Enable debug by pressing D + E + B + U + G keys in sequence
+        let debugSequence = "";
+        document.addEventListener('keydown', (e) => {
+            debugSequence += e.key.toLowerCase();
+            if (debugSequence.length > 5) {
+                debugSequence = debugSequence.substring(1);
+            }
+            if (debugSequence === "debug") {
+                debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+                logDebug("Debug mode " + (debugInfo.style.display === 'none' ? 'OFF' : 'ON'));
+            }
+        });
+        
+        // Check for existing session after a delay to allow page to load
+        setTimeout(checkExistingSession, 500);
+    }
+    
+    // Start the widget
+    init();// Interactive Chat Widget for n8n
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -60,7 +80,7 @@
         }
 
         .chat-assist-widget .chat-window.visible {
-            display: flex;
+            display: flex !important;
             opacity: 1;
             transform: translateY(0) scale(1);
         }
@@ -604,6 +624,47 @@
     const chatWindow = document.createElement('div');
     chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
     
+    // Debug element to test visibility
+    const debugStyle = document.createElement('style');
+    debugStyle.textContent = `
+        .debug-info {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px;
+            font-size: 10px;
+            z-index: 9999;
+            border-radius: 3px;
+            display: none;
+        }
+    `;
+    document.head.appendChild(debugStyle);
+    
+    const debugInfo = document.createElement('div');
+    debugInfo.className = 'debug-info';
+    document.body.appendChild(debugInfo);
+    
+    // Debug function
+    function logDebug(message) {
+        console.log("Chat Debug:", message);
+        debugInfo.innerHTML += message + "<br>";
+        // Keep only the last 5 lines
+        const lines = debugInfo.innerHTML.split("<br>");
+        if (lines.length > 5) {
+            debugInfo.innerHTML = lines.slice(lines.length - 5).join("<br>");
+        }
+    }
+    
+    // Direct style fixes for the chat window for Safari and older browsers
+    chatWindow.style.position = "fixed";
+    chatWindow.style.bottom = "90px";
+    chatWindow.style.zIndex = "1000";
+    chatWindow.style.backgroundColor = settings.style.backgroundColor;
+    chatWindow.style.left = settings.style.position === 'left' ? "20px" : "auto";
+    chatWindow.style.right = settings.style.position === 'right' ? "20px" : "auto";
+    
     // Extract first two letters for logo placeholder
     const logoLetters = settings.branding.name ? settings.branding.name.substring(0, 2).toUpperCase() : 'FC';
     
@@ -670,6 +731,14 @@
             <circle cx="12" cy="10" r="1.5"></circle>
             <circle cx="15.5" cy="10" r="1.5"></circle>
         </svg>`;
+    
+    // Direct style fixes for Safari and older browsers
+    launchButton.style.zIndex = "999";
+    launchButton.style.position = "fixed";
+    launchButton.style.bottom = "20px";
+    launchButton.style.left = settings.style.position === 'left' ? "20px" : "auto";
+    launchButton.style.right = settings.style.position === 'right' ? "20px" : "auto";
+    launchButton.style.cursor = "pointer";
     
     // Add elements to DOM
     widgetRoot.appendChild(chatWindow);
@@ -781,8 +850,9 @@
     function checkExistingSession() {
         // If we have a saved session ID and user info
         if (conversationId && userName && userEmail) {
-            // Attempt to restore the session
-            restoreSession();
+            // We'll only restore the session when the chat is opened
+            // This prevents the session check from interfering with window opening
+            console.log("Found existing session, will restore when chat is opened");
         }
     }
     
@@ -1256,12 +1326,42 @@
     });
     
     launchButton.addEventListener('click', () => {
+        // Log debug info
+        logDebug("Launch button clicked");
+        
+        // Force display block first to ensure transition works
+        chatWindow.style.display = 'flex';
+        
+        // Force a reflow before adding the visible class
+        void chatWindow.offsetWidth;
+        
+        // Add visible class for animation
         chatWindow.classList.toggle('visible');
         
-        // If window becomes visible and we have an active session
-        if (chatWindow.classList.contains('visible') && sessionActive) {
-            // Refresh the session
-            refreshSession();
+        // Log the state
+        logDebug("Is visible: " + chatWindow.classList.contains('visible'));
+        
+        // If window becomes visible
+        if (chatWindow.classList.contains('visible')) {
+            // If we have an active session or saved session data
+            if (sessionActive || (conversationId && userName && userEmail)) {
+                // Try to restore only if we have all the data and not already active
+                if (!sessionActive && conversationId && userName && userEmail) {
+                    setTimeout(() => {
+                        restoreSession();
+                    }, 100);
+                } else if (sessionActive) {
+                    // Just refresh the existing session
+                    refreshSession();
+                }
+            }
+        } else {
+            // If closing, set display to none after transition completes
+            setTimeout(() => {
+                if (!chatWindow.classList.contains('visible')) {
+                    chatWindow.style.display = 'none';
+                }
+            }, 300); // Match the transition duration
         }
     });
 
