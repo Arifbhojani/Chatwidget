@@ -311,7 +311,7 @@
             font-family: inherit;
             font-size: 14px;
             line-height: 1.5;
-            max-height: 120px;
+            max-height: 80px;
             min-height: 40px;
             transition: var(--chat-transition);
         }
@@ -539,6 +539,43 @@
         }
     `;
     document.head.appendChild(widgetStyles);
+  
+  const fixedStyles = document.createElement('style');
+fixedStyles.textContent = `
+    .chat-assist-widget .chat-body {
+        position: relative;
+        display: none;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .chat-assist-widget .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f9f9f9;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-height: calc(100% - 70px);
+    }
+    
+    .chat-assist-widget .chat-controls {
+        padding: 10px 15px;
+        background: var(--chat-color-surface);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        border-top: 1px solid var(--chat-color-border);
+    }
+`;
+document.head.appendChild(fixedStyles); 
 
     // Default configuration
     const defaultSettings = {
@@ -1085,4 +1122,4 @@ async function submitMessage(messageText) {
             chatWindow.classList.remove('visible');
         });
     });
-})();
+})(); 
