@@ -786,7 +786,7 @@ const $e = {
     observersConfig: void 0,
     borderRadiusStyle: "rounded"
 };
-let Ae = ((Me = {}).N8NCHATUI_POPUP = "n8nchatui-popup", Me.N8NCHATUI_INPAGE = "n8nchatui-inpage", Me);
+let Ae = ((Me = {}).Botstitch_POPUP = "Botstitch-popup", Me.Botstitch_INPAGE = "Botstitch-inpage", Me);
 var Me;
 const Pe = async e => {
     try {
@@ -956,7 +956,7 @@ const [Ge, Le] = M(), ye = te('<figure data-testid="default-avatar"><svg width="
     var r, o
 }, ze = e => {
     var r;
-    const o = null !== document.querySelector(Ae.N8NCHATUI_INPAGE) ? "px-4" : "px-12";
+    const o = null !== document.querySelector(Ae.Botstitch_INPAGE) ? "px-4" : "px-12";
     return de(r = Qe(), W({
         get disabled() {
             return e.isDisabled || e.isLoading
@@ -44025,7 +44025,7 @@ const ta = te('<textarea class="focus:outline-none bg-transparent px-4 py-4 font
                 d((() => r.detail))
             };
         return T((() => {
-            const e = document.querySelector(Ae.N8NCHATUI_POPUP);
+            const e = document.querySelector(Ae.Botstitch_POPUP);
             if (e) return e.addEventListener("openBot", s), e.addEventListener("closeBot", g), e.addEventListener("setMetadata", p), () => {
                 e.removeEventListener("openBot", s), e.removeEventListener("closeBot", g), e.removeEventListener("setMetadata", p)
             }
@@ -44234,7 +44234,7 @@ const ta = te('<textarea class="focus:outline-none bg-transparent px-4 py-4 font
             a((() => r.detail))
         });
         return T((() => {
-            const e = document.querySelector(Ae.N8NCHATUI_INPAGE);
+            const e = document.querySelector(Ae.Botstitch_INPAGE);
             if (e) return e.addEventListener("setMetadata", d), () => {
                 e.removeEventListener("setMetadata", d)
             }
@@ -44358,14 +44358,14 @@ const ta = te('<textarea class="focus:outline-none bg-transparent px-4 py-4 font
 let Ka;
 const Wa = e => {
         if (Ja(), e) {
-            var r = e.id ? document.getElementById(e.id) : document.querySelector(Ae.N8NCHATUI_INPAGE);
-            if (!r) throw new Error(`<${Ae.N8NCHATUI_INPAGE}> element not found.`);
+            var r = e.id ? document.getElementById(e.id) : document.querySelector(Ae.Botstitch_INPAGE);
+            if (!r) throw new Error(`<${Ae.Botstitch_INPAGE}> element not found.`);
             Object.assign(r, e), Ka = r
         } else console.log("In-page: No props received")
     },
     Qa = e => {
         var r;
-        Ja(), e ? (r = document.createElement(Ae.N8NCHATUI_POPUP), Object.assign(r, e), document.body.appendChild(r), Ka = r) : console.log("Popup: No props received")
+        Ja(), e ? (r = document.createElement(Ae.Botstitch_POPUP), Object.assign(r, e), document.body.appendChild(r), Ka = r) : console.log("Popup: No props received")
     },
     Za = () => {
         Ka?.dispatchEvent(new CustomEvent("openBot"))
@@ -44381,7 +44381,7 @@ const Wa = e => {
     Ja = () => {
         Ka && Ka?.remove()
     },
-    ja = ("undefined" != typeof window && (he(Ae.N8NCHATUI_INPAGE, $e, Ha), he(Ae.N8NCHATUI_POPUP, $e, ka)), {
+    ja = ("undefined" != typeof window && (he(Ae.Botstitch_INPAGE, $e, Ha), he(Ae.Botstitch_POPUP, $e, ka)), {
         initFull: Wa,
         init: Qa,
         destroy: Ja,
