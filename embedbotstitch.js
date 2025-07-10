@@ -2,8 +2,9 @@
 (function() {
   'use strict';
 
-  // BotStitch Chat Widget Embed Script
+  // BotStitch Chat Widget Embed Script v2.1.0
   const BotStitch = {
+    version: '2.1.0',
     widgets: new Map(),
     
     init: function(config) {
@@ -53,8 +54,8 @@
             size: 50,
             iconColor: '#373434',
             customIconSrc: '',
-            customIconSize: 60,
-            customIconBorderRadius: 15,
+            customIconSize: 24,
+            customIconBorderRadius: 0,
             autoWindowOpen: {
               autoOpen: false,
               openDelay: 2
@@ -160,6 +161,10 @@
           box-sizing: border-box;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
+        .botstitch-widget svg {
+          flex-shrink: 0;
+          vertical-align: middle;
+        }
         .botstitch-hidden { display: none !important; }
         .botstitch-fade-in { 
           animation: botstitch-fadeIn 0.3s ease-in-out;
@@ -175,6 +180,18 @@
           0% { transform: scale(1); }
           50% { transform: scale(1.1); }
           100% { transform: scale(1); }
+        }
+        @media (max-width: 480px) {
+          .botstitch-widget.botstitch-chat-window {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+          }
         }
       `;
       document.head.appendChild(style);
@@ -206,18 +223,22 @@
         const icon = document.createElement('img');
         icon.src = this.config.theme.button.customIconSrc;
         icon.style.cssText = `
-          width: 24px;
-          height: 24px;
-          filter: brightness(0) saturate(100%) ${this.config.theme.button.iconColor === '#ffffff' ? 'invert(1)' : ''};
+          width: ${this.config.theme.button.customIconSize ? this.config.theme.button.customIconSize + 'px' : '24px'};
+          height: ${this.config.theme.button.customIconSize ? this.config.theme.button.customIconSize + 'px' : '24px'};
+          border-radius: ${this.config.theme.button.customIconBorderRadius ? this.config.theme.button.customIconBorderRadius + 'px' : '0px'};
+          object-fit: contain;
         `;
+        // Handle image loading errors
+        icon.onerror = () => {
+          console.warn('BotStitch: Custom icon failed to load, falling back to default icon');
+          icon.style.display = 'none';
+          this.addDefaultIcon(button);
+        };
+        // Handle cross-origin issues
+        icon.crossOrigin = 'anonymous';
         button.appendChild(icon);
       } else {
-        // Default icon
-        button.innerHTML = `
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="${this.config.theme.button.iconColor}">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-          </svg>
-        `;
+        this.addDefaultIcon(button);
       }
 
       button.addEventListener('click', () => this.toggle());
@@ -230,6 +251,30 @@
       if (this.config.theme.tooltip.showTooltip) {
         this.createTooltip();
       }
+    }
+
+    addDefaultIcon(button) {
+      // Clear existing content
+      button.innerHTML = '';
+      
+      // Create a proper chat/message icon
+      const iconSvg = document.createElement('div');
+      iconSvg.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+          <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="${this.config.theme.button.iconColor}" stroke="${this.config.theme.button.iconColor}" stroke-width="0.5"/>
+          <circle cx="8" cy="10" r="1.5" fill="${this.config.theme.button.backgroundColor}"/>
+          <circle cx="12" cy="10" r="1.5" fill="${this.config.theme.button.backgroundColor}"/>
+          <circle cx="16" cy="10" r="1.5" fill="${this.config.theme.button.backgroundColor}"/>
+        </svg>
+      `;
+      iconSvg.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+      `;
+      button.appendChild(iconSvg);
     }
 
     createTooltip() {
@@ -270,7 +315,7 @@
     createChatWindow() {
       const chatWindow = document.createElement('div');
       chatWindow.id = `${this.id}-chat`;
-      chatWindow.className = 'botstitch-widget botstitch-hidden';
+      chatWindow.className = 'botstitch-widget botstitch-chat-window botstitch-hidden';
       chatWindow.style.cssText = `
         position: fixed;
         right: ${this.config.theme.button.right}px;
@@ -354,8 +399,18 @@
         padding: 4px;
         border-radius: 4px;
         opacity: 0.8;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
-      closeButton.innerHTML = '✕';
+      closeButton.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      `;
       closeButton.addEventListener('click', () => this.close());
 
       header.appendChild(titleContainer);
@@ -433,7 +488,12 @@
         align-items: center;
         justify-content: center;
       `;
-      sendButton.innerHTML = '➤';
+      sendButton.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22,2 15,22 11,13 2,9"/>
+        </svg>
+      `;
       sendButton.addEventListener('click', () => this.sendMessage());
 
       container.appendChild(sendButton);
@@ -457,8 +517,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 16px;
       `;
-      button.innerHTML = '📎';
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.88 16.95a2 2 0 0 1-2.83-2.83l8.49-8.49"/>
+        </svg>
+      `;
       
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -486,8 +551,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 16px;
       `;
-      button.innerHTML = '🎤';
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      `;
       
       button.addEventListener('click', () => this.toggleVoiceRecording());
       this.voiceButton = button;
@@ -594,7 +667,7 @@
           return;
         }
 
-        this.addMessage(`📁 Uploaded: ${file.name}`, 'user');
+        this.addMessage(`📄 Uploaded: ${file.name}`, 'user');
       });
     }
 
@@ -623,13 +696,17 @@
 
         this.mediaRecorder.addEventListener('stop', () => {
           const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
-          this.addMessage('🎤 Voice message recorded', 'user');
+          this.addMessage('🎙️ Voice message recorded', 'user');
           stream.getTracks().forEach(track => track.stop());
         });
 
         this.mediaRecorder.start();
         this.isRecording = true;
-        this.voiceButton.innerHTML = '⏹️';
+        this.voiceButton.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+        `;
         this.voiceButton.classList.add('botstitch-recording');
 
         setTimeout(() => {
@@ -648,7 +725,14 @@
       if (this.mediaRecorder && this.isRecording) {
         this.mediaRecorder.stop();
         this.isRecording = false;
-        this.voiceButton.innerHTML = '🎤';
+        this.voiceButton.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        `;
         this.voiceButton.classList.remove('botstitch-recording');
       }
     }
