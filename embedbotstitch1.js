@@ -2,9 +2,9 @@
 (function() {
   'use strict';
 
-  // BotStitch Chat Widget Embed Script v2.3.0
+  // BotStitch Chat Widget Embed Script v2.2.0
   const BotStitch = {
-    version: '2.3.0',
+    version: '2.2.0',
     widgets: new Map(),
     
     init: function(config) {
@@ -38,7 +38,6 @@
       this.messages = [];
       this.isRecording = false;
       this.mediaRecorder = null;
-      this.starterPromptsShown = false;
       
       this.init();
     }
@@ -147,12 +146,10 @@
     }
 
     init() {
-      console.log('🚀 BotStitch Widget v2.2.0 initializing...');
-      console.log('📊 Config:', {
-        footer: this.config.theme.chatWindow.footer,
-        uploads: this.config.theme.chatWindow.uploadsConfig?.enabled,
-        voice: this.config.theme.chatWindow.voiceInputConfig?.enabled
-      });
+      console.log('BotStitch Widget v2.2.0 initializing...');
+      console.log('Footer enabled:', this.config.theme.chatWindow.footer?.enabled);
+      console.log('Uploads enabled:', this.config.theme.chatWindow.uploadsConfig?.enabled);
+      console.log('Voice enabled:', this.config.theme.chatWindow.voiceInputConfig?.enabled);
       
       this.createStyles();
       this.createButton();
@@ -166,8 +163,6 @@
 
       // Add welcome message
       this.addMessage(this.config.theme.chatWindow.welcomeMessage, 'bot');
-      
-      console.log('✅ BotStitch Widget initialized successfully');
     }
 
     createStyles() {
@@ -370,11 +365,11 @@
       const inputContainer = this.createInputContainer();
       chatWindow.appendChild(inputContainer);
 
-      // Footer - Always show in development
-      console.log('Creating footer...');
-      const footer = this.createFooter();
-      chatWindow.appendChild(footer);
-      console.log('Footer added to chat window');
+      // Footer
+      if (this.config.theme.chatWindow.footer.enabled) {
+        const footer = this.createFooter();
+        chatWindow.appendChild(footer);
+      }
 
       document.body.appendChild(chatWindow);
       this.chatElement = chatWindow;
@@ -533,25 +528,14 @@
         border-radius: 0 0 ${this.config.theme.chatWindow.borderRadiusStyle === 'rounded' ? '12px 12px' : '4px 4px'};
         border-top: 2px solid #f59e0b;
         font-weight: 500;
-        min-height: 35px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       `;
 
-      // Use footer config if available, otherwise use defaults
-      const footerConfig = this.config.theme.chatWindow.footer || {
-        text: 'Free customizable chat widget for n8n',
-        link: 'https://botstitch.com',
-        linkText: 'botstitch.com'
-      };
-
       const footerText = document.createElement('span');
-      footerText.textContent = footerConfig.text + ' | ';
+      footerText.textContent = this.config.theme.chatWindow.footer.text + ' | ';
       
       const footerLink = document.createElement('a');
-      footerLink.href = footerConfig.link;
-      footerLink.textContent = footerConfig.linkText;
+      footerLink.href = this.config.theme.chatWindow.footer.link;
+      footerLink.textContent = this.config.theme.chatWindow.footer.linkText;
       footerLink.target = '_blank';
       footerLink.style.cssText = `
         color: #92400e;
@@ -820,10 +804,9 @@
         setTimeout(() => this.inputElement.focus(), 100);
       }
 
-      // Add starter prompts only once on first open
-      if (this.messages.length === 1 && this.config.theme.chatWindow.starterPrompts.length > 0 && !this.starterPromptsShown) {
+      // Add starter prompts if first time opening
+      if (this.messages.length === 1 && this.config.theme.chatWindow.starterPrompts.length > 0) {
         this.showStarterPrompts();
-        this.starterPromptsShown = true;
       }
     }
 
