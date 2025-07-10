@@ -110,15 +110,21 @@
               sendButtonBorderRadius: 50
             },
             uploadsConfig: {
-              enabled: false,
+              enabled: true,
               acceptFileTypes: ['jpeg', 'jpg', 'png', 'pdf'],
               maxFiles: 5,
               maxSizeInMB: 10
             },
             voiceInputConfig: {
-              enabled: false,
+              enabled: true,
               maxRecordingTime: 15,
               recordingNotSupportedMessage: 'Voice recording is not supported in this browser'
+            },
+            footer: {
+              enabled: true,
+              text: 'Free customizable chat widget for n8n',
+              link: 'https://botstitch.com',
+              linkText: 'botstitch.com'
             }
           }
         }
@@ -354,6 +360,12 @@
       const inputContainer = this.createInputContainer();
       chatWindow.appendChild(inputContainer);
 
+      // Footer
+      if (this.config.theme.chatWindow.footer.enabled) {
+        const footer = this.createFooter();
+        chatWindow.appendChild(footer);
+      }
+
       document.body.appendChild(chatWindow);
       this.chatElement = chatWindow;
       this.messagesContainer = messagesContainer;
@@ -459,17 +471,13 @@
         this.updateCharacterCount();
       });
 
-      // Upload button
-      if (this.config.theme.chatWindow.uploadsConfig.enabled) {
-        const uploadButton = this.createUploadButton();
-        container.appendChild(uploadButton);
-      }
+      // Upload button (always show)
+      const uploadButton = this.createUploadButton();
+      container.appendChild(uploadButton);
 
-      // Voice button
-      if (this.config.theme.chatWindow.voiceInputConfig.enabled) {
-        const voiceButton = this.createVoiceButton();
-        container.appendChild(voiceButton);
-      }
+      // Voice button (always show)
+      const voiceButton = this.createVoiceButton();
+      container.appendChild(voiceButton);
 
       container.appendChild(input);
 
@@ -502,6 +510,37 @@
       this.sendButton = sendButton;
 
       return container;
+    }
+
+    createFooter() {
+      const footer = document.createElement('div');
+      footer.style.cssText = `
+        background-color: #fbbf24;
+        color: #1f2937;
+        padding: 8px 16px;
+        text-align: center;
+        font-size: 12px;
+        border-radius: 0 0 ${this.config.theme.chatWindow.borderRadiusStyle === 'rounded' ? '12px 12px' : '4px 4px'};
+        border-top: 1px solid #f59e0b;
+      `;
+
+      const footerText = document.createElement('span');
+      footerText.textContent = this.config.theme.chatWindow.footer.text + ' | ';
+      
+      const footerLink = document.createElement('a');
+      footerLink.href = this.config.theme.chatWindow.footer.link;
+      footerLink.textContent = this.config.theme.chatWindow.footer.linkText;
+      footerLink.target = '_blank';
+      footerLink.style.cssText = `
+        color: #1f2937;
+        text-decoration: underline;
+        font-weight: 600;
+      `;
+
+      footer.appendChild(footerText);
+      footer.appendChild(footerLink);
+      
+      return footer;
     }
 
     createUploadButton() {
@@ -650,6 +689,12 @@
       const files = Array.from(event.target.files);
       const config = this.config.theme.chatWindow.uploadsConfig;
       
+      // Check if uploads are actually enabled
+      if (!config.enabled) {
+        this.addMessage('File uploads are not enabled for this chat.', 'bot');
+        return;
+      }
+      
       if (files.length > config.maxFiles) {
         this.addMessage(`Too many files. Maximum ${config.maxFiles} files allowed.`, 'bot');
         return;
@@ -672,6 +717,12 @@
     }
 
     async toggleVoiceRecording() {
+      // Check if voice recording is enabled
+      if (!this.config.theme.chatWindow.voiceInputConfig.enabled) {
+        this.addMessage('Voice recording is not enabled for this chat.', 'bot');
+        return;
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         this.addMessage(this.config.theme.chatWindow.voiceInputConfig.recordingNotSupportedMessage, 'bot');
         return;
