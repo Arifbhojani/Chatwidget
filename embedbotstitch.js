@@ -2,9 +2,9 @@
 (function() {
   'use strict';
 
-  // BotStitch Chat Widget Embed Script v2.1.0
+  // BotStitch Chat Widget Embed Script v2.2.0
   const BotStitch = {
-    version: '2.1.0',
+    version: '2.2.0',
     widgets: new Map(),
     
     init: function(config) {
@@ -146,6 +146,11 @@
     }
 
     init() {
+      console.log('BotStitch Widget v2.2.0 initializing...');
+      console.log('Footer enabled:', this.config.theme.chatWindow.footer?.enabled);
+      console.log('Uploads enabled:', this.config.theme.chatWindow.uploadsConfig?.enabled);
+      console.log('Voice enabled:', this.config.theme.chatWindow.voiceInputConfig?.enabled);
+      
       this.createStyles();
       this.createButton();
       this.createChatWindow();
@@ -515,13 +520,14 @@
     createFooter() {
       const footer = document.createElement('div');
       footer.style.cssText = `
-        background-color: #fbbf24;
-        color: #1f2937;
-        padding: 8px 16px;
+        background-color: #fef3c7;
+        color: #92400e;
+        padding: 10px 16px;
         text-align: center;
         font-size: 12px;
         border-radius: 0 0 ${this.config.theme.chatWindow.borderRadiusStyle === 'rounded' ? '12px 12px' : '4px 4px'};
-        border-top: 1px solid #f59e0b;
+        border-top: 2px solid #f59e0b;
+        font-weight: 500;
       `;
 
       const footerText = document.createElement('span');
@@ -532,9 +538,9 @@
       footerLink.textContent = this.config.theme.chatWindow.footer.linkText;
       footerLink.target = '_blank';
       footerLink.style.cssText = `
-        color: #1f2937;
+        color: #92400e;
         text-decoration: underline;
-        font-weight: 600;
+        font-weight: 700;
       `;
 
       footer.appendChild(footerText);
