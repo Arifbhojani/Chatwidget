@@ -52,6 +52,11 @@
                 width: 380,
                 height: 600,
                 fontSize: 14,
+                // NEW: Avatar and message styling
+            avatarBorderRadius: 25,
+            messageBorderRadius: 6,
+            avatarSize: 40,
+            showScrollbar: false, 
                 
                 // Header
                 showTitle: true,
@@ -382,13 +387,34 @@
                     background-color: rgba(255, 255, 255, 0.1);
                 }
                 
-                .botstitch-messages {
+               .botstitch-messages {
                     flex: 1;
                     overflow-y: auto;
                     padding: 16px;
                     display: flex;
                     flex-direction: column;
                     gap: 12px;
+                    scrollbar-width: ${config.chatWindow.showScrollbar ? 'auto' : 'none'};
+                    -ms-overflow-style: ${config.chatWindow.showScrollbar ? 'auto' : 'none'};
+                }
+                
+                .botstitch-messages::-webkit-scrollbar {
+                    display: ${config.chatWindow.showScrollbar ? 'block' : 'none'};
+                    width: ${config.chatWindow.showScrollbar ? '6px' : '0px'};
+                }
+                
+                .botstitch-messages::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 3px;
+                }
+                
+                .botstitch-messages::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 3px;
+                }
+                
+                .botstitch-messages::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
                 }
                 
                 .botstitch-message {
@@ -408,26 +434,29 @@
                     flex-direction: row-reverse;
                 }
                 
-                .botstitch-message-avatar {
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 50%;
+               .botstitch-message-avatar {
+                    width: ${config.chatWindow.avatarSize || 28}px;
+                    height: ${config.chatWindow.avatarSize || 28}px;
+                    border-radius: ${config.chatWindow.avatarBorderRadius || 50}%;
                     background-color: #e2e8f0;
                     flex-shrink: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-size: 12px;
+                    overflow: hidden;
                 }
                 
                 .botstitch-message-content {
                     background-color: ${config.chatWindow.botMessage.backgroundColor};
                     color: ${config.chatWindow.botMessage.textColor};
                     padding: 10px 14px;
-                    border-radius: 18px;
+                    border-radius: ${config.chatWindow.messageBorderRadius || 18}px;
                     font-size: ${config.chatWindow.fontSize}px;
                     line-height: 1.4;
                     word-wrap: break-word;
+                    max-width: 100%;
+                
                 }
                 
                 .botstitch-message.user .botstitch-message-content {
@@ -488,11 +517,10 @@
                 .botstitch-input::placeholder {
                     color: #94a3b8;
                 }
-                
                 .botstitch-send-button {
                     background-color: ${config.chatWindow.textInput.sendButtonColor};
                     border: none;
-                    border-radius: 50%;
+                    border-radius: ${config.chatWindow.textInput.sendButtonBorderRadius || 50}%;
                     width: 32px;
                     height: 32px;
                     display: flex;
@@ -501,6 +529,7 @@
                     cursor: pointer;
                     transition: all 0.2s;
                 }
+                
                 
                 .botstitch-send-button:hover {
                     transform: scale(1.1);
@@ -584,19 +613,84 @@
                     text-decoration: underline;
                 }
                 
-                @media (max-width: 480px) {
+@media (max-width: 480px) {
                     .botstitch-window {
-                        right: 10px;
-                        bottom: 10px;
-                        width: calc(100vw - 20px);
-                        height: calc(100vh - 20px);
-                        max-width: 400px;
-                        max-height: 600px;
+                        right: 10px !important;
+                        bottom: 10px !important;
+                        left: 10px !important;
+                        width: calc(100vw - 20px) !important;
+                        height: calc(100vh - 100px) !important;
+                        max-width: none !important;
+                        max-height: none !important;
                     }
                     
                     .botstitch-button {
-                        right: 20px;
-                        bottom: 20px;
+                        right: 20px !important;
+                        bottom: 20px !important;
+                        width: 50px !important;
+                        height: 50px !important;
+                    }
+                    
+                    .botstitch-tooltip {
+                        right: 80px !important;
+                        bottom: 35px !important;
+                        font-size: 12px !important;
+                    }
+                }
+                
+                @media (min-width: 481px) and (max-width: 768px) {
+                    .botstitch-window {
+                        right: 15px !important;
+                        bottom: 15px !important;
+                        width: ${Math.min(config.chatWindow.width, 350)}px !important;
+                        height: ${Math.min(config.chatWindow.height, 500)}px !important;
+                    }
+                    
+                    .botstitch-button {
+                        width: ${Math.min(config.button.size, 55)}px !important;
+                        height: ${Math.min(config.button.size, 55)}px !important;
+                    }
+                }
+                
+                @media (min-width: 769px) and (max-width: 1024px) {
+                    .botstitch-window {
+                        right: ${config.button.right}px !important;
+                        bottom: ${config.button.bottom + config.button.size + 10}px !important;
+                        width: ${Math.min(config.chatWindow.width, 380)}px !important;
+                        height: ${Math.min(config.chatWindow.height, 550)}px !important;
+                    }
+                }
+                
+                @media (min-width: 1025px) and (max-width: 1366px) {
+                    .botstitch-window {
+                        right: ${config.button.right}px !important;
+                        bottom: ${config.button.bottom + config.button.size + 10}px !important;
+                        width: ${config.chatWindow.width}px !important;
+                        height: ${config.chatWindow.height}px !important;
+                    }
+                }
+                
+                @media (min-width: 1367px) {
+                    .botstitch-window {
+                        right: ${Math.max(config.button.right, 30)}px !important;
+                        bottom: ${config.button.bottom + config.button.size + 15}px !important;
+                        width: ${config.chatWindow.width}px !important;
+                        height: ${config.chatWindow.height}px !important;
+                    }
+                }
+                
+                /* Laptop specific adjustments */
+                @media (min-width: 1024px) and (max-width: 1440px) and (max-height: 900px) {
+                    .botstitch-window {
+                        height: ${Math.min(config.chatWindow.height, 450)}px !important;
+                        bottom: ${config.button.bottom + config.button.size + 5}px !important;
+                    }
+                }
+                
+                /* Ultra-wide screen adjustments */
+                @media (min-width: 1921px) {
+                    .botstitch-window {
+                        right: ${Math.max(config.button.right, 50)}px !important;
                     }
                 }
             `;
@@ -1293,5 +1387,66 @@
     if (window.botStitchConfig) {
         window.BotStitch.init(window.botStitchConfig);
     }
-
+     // ES6 Module Export Support (like n8nchatui.com)
+    if (typeof module !== 'undefined' && module.exports) {
+        // CommonJS
+        module.exports = {
+            init: window.BotStitch.init,
+            updateConfig: window.BotStitch.updateConfig,
+            open: window.BotStitch.open,
+            close: window.BotStitch.close,
+            destroy: window.BotStitch.destroy
+        };
+    }
+    
+    // ES6 Module Export
+    if (typeof window !== 'undefined') {
+        window.BotStitchChatbot = {
+            init: window.BotStitch.init,
+            updateConfig: window.BotStitch.updateConfig,
+            open: window.BotStitch.open,
+            close: window.BotStitch.close,
+            destroy: window.BotStitch.destroy
+        };
+    }
+    
+    // Default export for module systems
+    const Chatbot = {
+        init: function(config) {
+            if (typeof window !== 'undefined' && window.BotStitch) {
+                return window.BotStitch.init(config);
+            }
+        },
+        updateConfig: function(config) {
+            if (typeof window !== 'undefined' && window.BotStitch) {
+                return window.BotStitch.updateConfig(config);
+            }
+        },
+        open: function() {
+            if (typeof window !== 'undefined' && window.BotStitch) {
+                return window.BotStitch.open();
+            }
+        },
+        close: function() {
+            if (typeof window !== 'undefined' && window.BotStitch) {
+                return window.BotStitch.close();
+            }
+        },
+        destroy: function() {
+            if (typeof window !== 'undefined' && window.BotStitch) {
+                return window.BotStitch.destroy();
+            }
+        }
+    };
+    
+    // Make it available for ES6 imports
+    if (typeof exports !== 'undefined') {
+        exports.default = Chatbot;
+    }
+    
+    // Global fallback
+    if (typeof window !== 'undefined') {
+        window.Chatbot = Chatbot;
+    }
+    
 })();
