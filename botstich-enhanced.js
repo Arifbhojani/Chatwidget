@@ -1,8 +1,8 @@
 /**
  * BotStitch Enhanced Chat Widget
  * Version: 2.0.0
- * Replicate n8nchatui.com functionality with additional features
- * License: MIT
+ * Author: Botstitch functionality with additional features
+ * License: Muhammad Arif
  */
 
 (function() {
