@@ -218,20 +218,23 @@
             const plan = this.config.plan || 'free';
             
             if (plan === 'free') {
-                // Force branding for free tier
+                // ONLY lock the footer branding - everything else is free
                 this.config.branding.showPoweredBy = true;
                 this.config.branding.footerText = 'Powered by BotStitch';
                 this.config.branding.footerLink = 'https://botstitch.com';
                 
-                // Disable premium features
-                this.config.theme.chatWindow.uploadsConfig.enabled = false;
-                this.config.theme.chatWindow.voiceInputConfig.enabled = false;
-                
-                // Limit starter prompts
-                if (this.config.theme.chatWindow.starterPrompts.length > 3) {
-                    this.config.theme.chatWindow.starterPrompts = this.config.theme.chatWindow.starterPrompts.slice(0, 3);
-                }
+                // DO NOT restrict these anymore:
+                // this.config.theme.chatWindow.uploadsConfig.enabled = true;  ✅ Free
+                // this.config.theme.chatWindow.voiceInputConfig.enabled = true; ✅ Free
+                // Unlimited starter prompts ✅ Free
+                // All customization options ✅ Free
             }
+            
+            if (plan === 'premium') {
+                // Premium users can customize footer or hide it completely
+                // Don't force any restrictions - let them control branding
+            }
+            
         }
 
         // Load CSS styles
