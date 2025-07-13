@@ -667,7 +667,15 @@
       // Clear input and files
       this.inputElement.value = '';
       this.adjustTextareaHeight(this.inputElement);
+      // In sendMessage method, move this BEFORE the try block:
+const filesToSend = [...this.pendingFiles]; // Copy the array
+this.pendingFiles = []; // Clear immediately
+this.showFilePreview(); // Update UI
 
+// Then use filesToSend instead of this.pendingFiles
+if (filesToSend.length > 0) {
+  response = await this.sendMessageWithFormData(message, filesToSend);
+}
       // Show typing indicator
       this.showTypingIndicator();
 
@@ -712,21 +720,7 @@
       formData.append("sessionId", this.id);
       formData.append("chatInput", message || "");
       // FIXED: File appending in sendMessageWithFormData
-for (const file of files) {
-  try {
-    // Direct file upload (this should work)
-    formData.append("upload", file, file.name);
-    console.log(`✅ Appended file: ${file.name}, size: ${file.size}`);
-  } catch (error) {
-    console.error(`❌ Failed to append file ${file.name}:`, error);
-  }
-}
 
-// Debug: Check what's actually in FormData
-console.log('FormData contents:');
-for (let [key, value] of formData.entries()) {
-  console.log(key, value instanceof File ? `File: ${value.name}` : value);
-}
       // Process and append files
       for (const file of files) {
         try {
