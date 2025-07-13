@@ -583,7 +583,7 @@
     createVoiceButton() {
       const button = document.createElement('button');
       button.style.cssText = `
-        background: none;
+        background: transparent;
         border: 1px solid #e5e5e5;
         border-radius: 6px;
         padding: 8px;
@@ -597,7 +597,16 @@
         transition: all 0.2s ease;
       `;
       
-      this.updateVoiceButtonState();
+      // FIXED: Initialize with microphone icon immediately
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      `;
+      
       button.addEventListener('click', () => this.toggleVoiceRecording());
       
       this.voiceButton = button;
@@ -607,18 +616,18 @@
     createFooter() {
       const footer = document.createElement('div');
       footer.style.cssText = `
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        color: #ffffff;
-        padding: 10px 16px;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        padding: 12px 16px;
         text-align: center;
         font-size: 12px;
         border-radius: 0 0 ${this.config.theme.chatWindow.borderRadiusStyle === 'rounded' ? '12px 12px' : '4px 4px'};
-        border-top: 2px solid #3b82f6;
-        font-weight: 500;
-        min-height: 35px;
+        border-top: 1px solid #e9ecef;
+        font-weight: 400;
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 4px;
       `;
 
       const footerConfig = this.config.theme.chatWindow.footer || {
@@ -628,17 +637,27 @@
       };
 
       const footerText = document.createElement('span');
-      footerText.textContent = footerConfig.text + ' | ';
+      footerText.textContent = footerConfig.text + ' |';
+      footerText.style.color = '#6c757d';
       
       const footerLink = document.createElement('a');
       footerLink.href = footerConfig.link;
       footerLink.textContent = footerConfig.linkText;
       footerLink.target = '_blank';
       footerLink.style.cssText = `
-        color: #ffffff;
-        text-decoration: underline;
-        font-weight: 700;
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 600;
+        margin-left: 4px;
       `;
+      
+      footerLink.addEventListener('mouseenter', () => {
+        footerLink.style.textDecoration = 'underline';
+      });
+      
+      footerLink.addEventListener('mouseleave', () => {
+        footerLink.style.textDecoration = 'none';
+      });
 
       footer.appendChild(footerText);
       footer.appendChild(footerLink);
@@ -667,15 +686,7 @@
       // Clear input and files
       this.inputElement.value = '';
       this.adjustTextareaHeight(this.inputElement);
-      // In sendMessage method, move this BEFORE the try block:
-const filesToSend = [...this.pendingFiles]; // Copy the array
-this.pendingFiles = []; // Clear immediately
-this.showFilePreview(); // Update UI
 
-// Then use filesToSend instead of this.pendingFiles
-if (filesToSend.length > 0) {
-  response = await this.sendMessageWithFormData(message, filesToSend);
-}
       // Show typing indicator
       this.showTypingIndicator();
 
@@ -719,7 +730,6 @@ if (filesToSend.length > 0) {
       formData.append("action", "sendMessage");
       formData.append("sessionId", this.id);
       formData.append("chatInput", message || "");
-      // FIXED: File appending in sendMessageWithFormData
 
       // Process and append files
       for (const file of files) {
@@ -1014,6 +1024,8 @@ if (filesToSend.length > 0) {
           </svg>
         `;
         this.voiceButton.classList.add('botstitch-recording');
+        this.voiceButton.style.backgroundColor = '#ef4444';
+        this.voiceButton.style.color = 'white';
       } else {
         this.voiceButton.innerHTML = `
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1024,6 +1036,8 @@ if (filesToSend.length > 0) {
           </svg>
         `;
         this.voiceButton.classList.remove('botstitch-recording');
+        this.voiceButton.style.backgroundColor = 'transparent';
+        this.voiceButton.style.color = '#666';
       }
     }
 
