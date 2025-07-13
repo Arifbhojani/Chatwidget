@@ -120,7 +120,7 @@
             },
             footer: {
               enabled: true,
-              text: 'Free customizable chat widget for n8n',
+              text: 'Powered by',
               link: 'https://botstitch.com',
               linkText: 'botstitch.com'
             }
