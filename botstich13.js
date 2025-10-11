@@ -30,6 +30,7 @@
       this.voiceButton = null;
       this.fileButton = null;
       this.fileInput = null;
+      this.starterPromptsDisplayed = false;
       
       this.init();
     }
@@ -222,13 +223,34 @@
         @media (max-width: 480px) {
           .botstitch-widget.botstitch-chat-window {
             position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 0 !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 90vw !important;
+            height: 80vh !important;
+            max-width: 400px !important;
+            max-height: 600px !important;
+            border-radius: 12px !important;
+            z-index: 999999 !important;
+            overflow: hidden !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+          }
+        }
+        
+        /* Additional mobile optimizations */
+        @media (max-width: 768px) and (orientation: landscape) {
+          .botstitch-widget.botstitch-chat-window {
+            height: 85vh !important;
+            max-height: 500px !important;
+          }
+        }
+        
+        /* iOS Safari specific fixes */
+        @supports (-webkit-touch-callout: none) {
+          @media (max-width: 480px) {
+            .botstitch-widget.botstitch-chat-window {
+              height: min(80vh, 600px) !important;
+            }
           }
         }
       `;
