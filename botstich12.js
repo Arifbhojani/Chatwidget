@@ -77,7 +77,7 @@
             welcomeMessage: 'Hello! How can I help you today?',
             errorMessage: 'Sorry, something went wrong. Please try again.',
             backgroundColor: '#ffffff',
-            height: 500,
+            height: 600,
             width: 400,
             fontSize: 16,
             starterPrompts: [],
@@ -1246,8 +1246,23 @@
 
     showStarterPrompts() {
       if (!this.config.theme.chatWindow.starterPrompts.length) return;
+      if (this.starterPromptsDisplayed) return;
+
+      // Check if prompts container already exists in the DOM
+      const existing = document.getElementById(`${this.id}-starter-prompts`);
+      if (existing) {
+        this.starterPromptsDisplayed = true;
+        return;
+      }
+
+      // Check if prompts were already shown in this session
+      if (this.messages.some(msg => msg.sender === 'starter-prompts')) {
+        this.starterPromptsDisplayed = true;
+        return;
+      }
 
       const promptsContainer = document.createElement('div');
+      promptsContainer.id = `${this.id}-starter-prompts`;
       promptsContainer.style.cssText = `
         padding: 16px;
         display: flex;
@@ -1273,12 +1288,20 @@
             this.inputElement.value = prompt;
             this.sendMessage();
             promptsContainer.remove();
+            // Mark as displayed to prevent re-adding
+            this.starterPromptsDisplayed = true;
+            // Add to messages to track that prompts were shown
+            this.messages.push({ text: 'starter-prompts', sender: 'starter-prompts', timestamp: new Date() });
           });
           promptsContainer.appendChild(button);
         }
       });
 
       this.messagesContainer.appendChild(promptsContainer);
+      // Mark as displayed immediately
+      this.starterPromptsDisplayed = true;
+      // Add to messages to track that prompts were shown
+      this.messages.push({ text: 'starter-prompts', sender: 'starter-prompts', timestamp: new Date() });
     }
 
     // Utility methods
