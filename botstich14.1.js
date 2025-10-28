@@ -834,17 +834,33 @@
       localStorage.setItem('botstitch_userInfo_' + this.id, JSON.stringify(userData));
       this.formSubmitted = true;
       
-      // Send to N8N
-      const formEndpoint = this.config.n8nChatUrl.replace(/\/[^\/]*$/, '/CollectUserInfo');
-      fetch(formEndpoint, {
+      console.log('📋 Form Data:', userData);
+      
+      // Send to SAME N8N webhook with action flag
+      fetch(this.config.n8nChatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...userData,
+          action: 'submitForm',
           sessionId: this.id,
-          timestamp: new Date().toISOString()
+          name: userData.name || '',
+          email: userData.email || '',
+          faith: userData.faith || '',
+          source: userData.source || '',
+          timestamp: new Date().toISOString(),
+          metadata: {
+            userAgent: navigator.userAgent,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
         })
-      }).catch(err => console.error('Form submission error:', err));
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('✅ Form submitted to N8N:', data);
+      })
+      .catch(err => {
+        console.error('❌ Form submission error:', err);
+      });
       
       // Remove form and show welcome
       formContainer.remove();
