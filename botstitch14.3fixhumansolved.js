@@ -1034,7 +1034,7 @@
       });
     }
 
-    // NEW: Transfer to human agent
+   // NEW: Transfer to human agent
     transferToHuman() {
       this.humanModeActive = true;
       
@@ -1044,23 +1044,27 @@
         titleElement.textContent = '🟢 Connecting to agent...';
       }
       
-      // Notify N8N
-      const transferEndpoint = this.config.n8nChatUrl.replace(/\/[^\/]*$/, '/TransferToHuman');
-      fetch(transferEndpoint, {
+      // Notify N8N - SAME WEBHOOK
+      fetch(this.config.n8nChatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'transferToHuman',  // ✅ Action flag
           sessionId: this.id,
           userInfo: this.userInfo,
-          chatHistory: this.messages
+          chatHistory: this.messages,
+          duration: Math.floor((Date.now() - this.chatStartTime) / 1000),
+          timestamp: new Date().toISOString()
         })
       })
-      .then(() => {
+      .then(res => res.json())
+      .then(data => {
         if (titleElement) {
           titleElement.textContent = '🟢 Connected to Support Agent';
         }
         this.addMessage('You are now connected to our support team. An agent will respond shortly.', 'bot');
         this.startPolling();
+        console.log('✅ Transfer successful:', data);
       })
       .catch(err => {
         console.error('Transfer error:', err);
