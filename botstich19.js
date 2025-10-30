@@ -233,14 +233,17 @@
         }, this.config.theme.button.autoWindowOpen.openDelay * 1000);
       }
 
-      // NEW: Check if form is required
-      if (this.config.features.formCollection?.enabled && !this.formSubmitted) {
-        // Form will be shown when chat opens
-        console.log('📋 Form collection enabled');
-      } else {
-        // Add welcome message
-        this.addMessage(this.config.theme.chatWindow.welcomeMessage, 'bot');
-      }
+        // NEW: Check if form is required
+        if (this.config.features.formCollection?.enabled && !this.formSubmitted) {
+          // Form will be shown when chat opens
+          console.log('📋 Form collection enabled');
+        } else if (this.config.userForm?.enabled && !this.userInfo) {
+          // Defer welcome until after userForm submit
+          console.log('📋 UserForm enabled - deferring welcome message');
+        } else {
+          // Add welcome message
+          this.addMessage(this.config.theme.chatWindow.welcomeMessage, 'bot');
+        }
       
       // NEW: Start timer if human transfer enabled
       if (this.config.features.humanTransfer?.enabled) {
@@ -919,12 +922,30 @@ submitUserForm() {
     return;
   }
   
-  this.userInfo = formData;
-  this.formShown = true;
-  this.chatStartTime = Date.now();
-  if (this.config.humanTransfer?.enabled) {
-    this.startNewHumanTransferTimer();
-  }
+    this.userInfo = formData;
+    this.formShown = true;
+    this.chatStartTime = Date.now();
+    if (this.config.humanTransfer?.enabled) {
+      this.startNewHumanTransferTimer();
+    }
+
+    // Send form submission to N8N (same webhook)
+    if (this.config.n8nChatUrl) {
+      try {
+        fetch(this.config.n8nChatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'submitForm',
+            sessionId: this.id,
+            ...formData,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.warn('Form submit to N8N failed:', err));
+      } catch (e) {
+        console.warn('Form submit error:', e);
+      }
+    }
   // Remove ALL forms
   const allForms = document.querySelectorAll('.botstitch-user-form');
   allForms.forEach(el => el.remove());
@@ -966,59 +987,110 @@ checkHumanTransfer() {
   return false;
 }
 showTransferPrompt() {
+  // Avoid duplicate prompt blocks in the DOM
+  if (this.messagesContainer && this.messagesContainer.querySelector('.botstitch-transfer-prompt')) {
+    return;
+  }
   const promptHTML = `
-    <div style="padding: 15px; background: #f0f8ff; border-radius: 8px; margin: 10px 0;">
+    <div class="botstitch-transfer-prompt" style="padding: 15px; background: #f0f8ff; border-radius: 8px; margin: 10px 0;">
       <p style="margin-bottom: 10px;">🤔 Would you like to connect with our team?</p>
       <button onclick="window.BotStitch.widgets.get('${this.id}').acceptTransfer()" 
-        style="background: #1175D6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-right: 8px;">
+        style="background: #1175D6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 8px; font-weight: 500;">
         ✅ Yes, connect me
       </button>
       <button onclick="window.BotStitch.widgets.get('${this.id}').declineTransfer()" 
-        style="background: #e0e0e0; color: #333; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+        style="background: #e0e0e0; color: #333; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500;">
         ❌ No, continue here
       </button>
     </div>
   `;
   this.addMessage(promptHTML, 'bot', true);
 }
-      acceptTransfer() {
+      async acceptTransfer() {
         this.addMessage('Connecting you to our live team...', 'user');
         
-        // Check if Tawk is loaded
-        if (!window.Tawk_API) {
-          this.addMessage('Live chat is loading. Please wait...', 'bot');
-          setTimeout(() => this.acceptTransfer(), 2000); // Retry after 2s
+        // STEP 1: Send to N8N FIRST
+        const sent = await this.sendTransferToN8N();
+        if (!sent) {
+          this.addMessage('Connection failed. Please try again.', 'bot');
           return;
         }
         
-        // Pass user info and chat history to Tawk
+        // STEP 2: Then switch to Tawk
+        const waitForTawk = () => {
+          if (window.Tawk_API && typeof window.Tawk_API.setAttributes === 'function') {
+            this.initiateTawkTransfer();
+          } else {
+            setTimeout(waitForTawk, 500);
+          }
+        };
+        waitForTawk();
+      }
+      declineTransfer() {
+        this.addMessage('No problem! I\'m here to help. Feel free to continue chatting.', 'bot');
+        // Reset for next cycle; prompt can appear again after full threshold
+        this.transferPromptShown = false;
+        this.chatStartTime = Date.now();
+        if (!this.timerInterval) {
+          this.startNewHumanTransferTimer();
+        }
+      }
+
+      async sendTransferToN8N() {
+        const transferUrl = this.config.n8nChatUrl;
+        const payload = {
+          action: "transferToHuman",
+          sessionId: this.id,
+          userInfo: this.userInfo,
+          chatHistory: this.messages.filter(m => m.sender !== 'starter-prompts'),
+          timestamp: new Date().toISOString(),
+          duration: this.chatStartTime ? Math.floor((Date.now() - this.chatStartTime) / 1000) : 0
+        };
+        
+        try {
+          const response = await fetch(transferUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          // Attempt to read response JSON but don't fail if not JSON
+          try { await response.clone().json(); } catch (_) {}
+          return response.ok;
+        } catch (error) {
+          console.error('N8N transfer error:', error);
+          return false;
+        }
+      }
+
+      initiateTawkTransfer() {
+        // Prepare recent chat history (exclude bot and starter-prompts)
         const chatHistory = this.messages
           .filter(m => m.sender !== 'starter-prompts' && m.sender !== 'bot')
           .slice(-10)
           .map(m => `${m.sender}: ${m.text}`)
           .join('\n');
         
-        window.Tawk_API.setAttributes({
-          'name': (this.userInfo && this.userInfo.name) || 'Guest',
-          'email': (this.userInfo && this.userInfo.email) || '',
-          'faith': (this.userInfo && this.userInfo.faith) || 'Not specified',
-          'source': (this.userInfo && this.userInfo.source) || 'Not specified',
-          'session_id': this.id,
-          'chat_duration': this.chatStartTime ? (Math.floor((Date.now() - this.chatStartTime) / 1000) + 's') : '0s',
-          'previous_conversation': chatHistory
-        }, function(error){
-          if (error) {
-            console.error('Tawk set attributes error:', error);
-          }
-        });
+        try {
+          window.Tawk_API.setAttributes({
+            'name': (this.userInfo && this.userInfo.name) || 'Guest',
+            'email': (this.userInfo && this.userInfo.email) || '',
+            'faith': (this.userInfo && this.userInfo.faith) || 'Not specified',
+            'source': (this.userInfo && this.userInfo.source) || 'Not specified',
+            'sessionid': this.id,
+            'chatduration': this.chatStartTime ? (Math.floor((Date.now() - this.chatStartTime) / 1000) + 's') : '0s',
+            'previouschat': chatHistory
+          }, function(error){
+            if (error) {
+              console.error('Tawk attributes error:', error);
+            }
+          });
+        } catch (e) {
+          console.warn('Tawk setAttributes error:', e);
+        }
         
         // Hide BotStitch widget
-        if (this.chatElement) {
-          this.chatElement.style.display = 'none';
-        }
-        if (this.buttonElement) {
-          this.buttonElement.style.display = 'none';
-        }
+        if (this.chatElement) this.chatElement.style.display = 'none';
+        if (this.buttonElement) this.buttonElement.style.display = 'none';
         
         // Show and start Tawk widget
         try {
@@ -1031,7 +1103,6 @@ showTransferPrompt() {
           console.warn('Tawk start/showWidget error:', e);
         }
         
-        // Wait a moment then maximize
         setTimeout(() => {
           try {
             if (typeof window.Tawk_API.maximize === 'function') {
@@ -1041,10 +1112,6 @@ showTransferPrompt() {
             console.warn('Tawk maximize error:', e);
           }
         }, 500);
-      }
-      declineTransfer() {
-        this.addMessage('No problem! I\'m here to help. Feel free to continue chatting.', 'bot');
-        this.transferPromptShown = false; // Can ask again later if needed
       }
 
 // 🆕 Transfer to Human (new-config path)
