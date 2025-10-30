@@ -1014,6 +1014,7 @@
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          action: "transferToHuman",
           sessionId: this.id,
           userInfo: this.userInfo,
           chatHistory: this.messages.filter(m => m.sender !== 'starter-prompts'),
@@ -2063,3 +2064,4 @@
     });
   
   })();
+
