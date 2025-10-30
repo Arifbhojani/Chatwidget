@@ -40,6 +40,8 @@
         this.pollingInterval = null;
         this.formSubmitted = false;
     this.isHumanTransferred = false;
+    this.transferPromptShown = false; // 🆕 Only show transfer prompt once per timer
+    this.formShown = false; // 🆕 Show form only once per session
         
         this.init();
       }
@@ -854,11 +856,11 @@
   
   // 🆕 Add User Form Display (after createChatWindow)
   showUserForm() {
-    if (!this.config.userForm?.enabled) {
-      this.chatStartTime = Date.now();
-      return;
-    }
-
+    // Prevent duplicates
+    if (document.querySelector('.botstitch-user-form')) return;
+    if (this.userInfo) return;
+    // Show only if not shown in this session
+    if (this.formShown) return;
     const formHTML = this.createFormHTML();
     this.addMessage(formHTML, 'bot', true);
   }
@@ -918,20 +920,19 @@
     }
     
     this.userInfo = formData;
+    this.formShown = true;
     this.chatStartTime = Date.now();
     if (this.config.humanTransfer?.enabled) {
       this.startNewHumanTransferTimer();
     }
-    
-    // Remove form from chat
-    const formElements = document.querySelectorAll('.botstitch-user-form');
-    formElements.forEach(el => el.remove());
-    
+    // Remove ALL forms
+    const allForms = document.querySelectorAll('.botstitch-user-form');
+    allForms.forEach(el => el.remove());
     const userName = formData.name || 'there';
     this.addMessage(`Thanks ${userName}! How can I help you today?`, 'bot');
   }
 
-  // 🆕 Timer for new humanTransfer config (auto trigger without extra user message)
+  // 🆕 Timer for new humanTransfer config — show prompt only, not auto-transfer
   startNewHumanTransferTimer() {
     if (!this.config.humanTransfer?.enabled) return;
     if (!this.chatStartTime) this.chatStartTime = Date.now();
@@ -944,28 +945,49 @@
         return;
       }
       const elapsed = (Date.now() - this.chatStartTime) / 1000;
-      if (elapsed >= threshold) {
-        clearInterval(this.timerInterval);
-        this.timerInterval = null;
-        this.triggerHumanTransfer();
+      if (elapsed >= threshold && !this.transferPromptShown) {
+        this.showTransferPrompt();
+        this.transferPromptShown = true;
       }
     }, 5000);
   }
 
-  // 🆕 Check if human transfer needed (call this in sendMessage)
+  // 🆕 Only prompt for human transfer, do NOT auto transfer
   checkHumanTransfer() {
     if (!this.config.humanTransfer?.enabled) return false;
     if (this.isHumanTransferred) return false;
     if (!this.chatStartTime) return false;
-    
     const elapsed = (Date.now() - this.chatStartTime) / 1000;
-    
-    if (elapsed >= this.config.humanTransfer.timeThreshold) {
-      this.triggerHumanTransfer();
-      return true;
+    if (elapsed >= this.config.humanTransfer.timeThreshold && !this.transferPromptShown) {
+      this.showTransferPrompt();
+      this.transferPromptShown = true;
+      return false; // Only show prompt, don't transfer
     }
-    
     return false;
+  }
+  showTransferPrompt() {
+    const promptHTML = `
+      <div style="padding: 15px; background: #f0f8ff; border-radius: 8px; margin: 10px 0;">
+        <p style="margin-bottom: 10px;">🤔 Would you like to connect with our team?</p>
+        <button onclick="window.BotStitch.widgets.get('${this.id}').acceptTransfer()" 
+          style="background: #1175D6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-right: 8px;">
+          ✅ Yes, connect me
+        </button>
+        <button onclick="window.BotStitch.widgets.get('${this.id}').declineTransfer()" 
+          style="background: #e0e0e0; color: #333; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+          ❌ No, continue here
+        </button>
+      </div>
+    `;
+    this.addMessage(promptHTML, 'bot', true);
+  }
+  acceptTransfer() {
+    this.addMessage('Connecting you to our team...', 'user');
+    this.triggerHumanTransfer();
+  }
+  declineTransfer() {
+    this.addMessage('No problem! I\'m here to help.', 'bot');
+    this.transferPromptShown = false; // Allow prompt again if needed
   }
 
   // 🆕 Transfer to Human (new-config path)
@@ -1848,10 +1870,12 @@
           this.chatElement.classList.add('botstitch-fade-in');
           this.isOpen = true;
           this.hideTooltip();
-          
-          // NEW: Prefer configurable userForm if enabled
-          if (this.config.userForm?.enabled && !this.userInfo) {
-            setTimeout(() => this.showUserForm(), 500);
+          // Only show form on FIRST open
+          if (this.config.userForm?.enabled && !this.userInfo && !this.formShown) {
+            setTimeout(() => {
+              this.showUserForm();
+              this.formShown = true;
+            }, 500);
           } else {
             // Original formCollection flow
             if (this.config.features.formCollection?.enabled && !this.formSubmitted) {
@@ -1860,22 +1884,17 @@
                 this.showFormCollection();
               }
             } else {
-              // Show starter prompts if not shown yet
               if (this.config.theme.chatWindow.starterPrompts.length > 0 && !this.starterPromptsDisplayed) {
                 this.showStarterPrompts();
               }
-              
-              // Start timer if enabled and not already started
               if (this.config.features.humanTransfer?.enabled && !this.chatStartTime) {
                 this.startHumanTransferTimer();
               }
             }
           }
-          
           if (this.config.theme.chatWindow.textInput.autoFocus && this.inputElement) {
             setTimeout(() => this.inputElement.focus(), 100);
           }
-
           // 🆕 If new humanTransfer config is enabled and userInfo already present, start timer
           if (this.config.humanTransfer?.enabled && this.userInfo) {
             this.startNewHumanTransferTimer();
