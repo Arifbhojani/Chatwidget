@@ -270,9 +270,16 @@
       try {
         const saved = sessionStorage.getItem(`botstitch_activeWidget_${this.id}`);
         if (saved === 'tawk' && window.Tawk_API) {
-          // Tawk was active, minimize BotStitch
+          // Tawk was active, hide BotStitch
           if (this.chatElement) {
             this.chatElement.style.display = 'none';
+          }
+          this.isOpen = false;
+        } else if (saved === 'minimized') {
+          // BotStitch was minimized, keep it closed
+          if (this.chatElement) {
+            this.chatElement.style.display = 'none';
+            this.chatElement.classList.add('botstitch-hidden');
           }
           this.isOpen = false;
         } else if (saved === 'bot') {
@@ -281,6 +288,53 @@
         }
       } catch (e) {
         console.warn('Could not restore widget state:', e);
+      }
+      // Setup Tawk event listeners for auto-switch
+      this.setupTawkListeners();
+    }
+  
+    // 🆕 Setup Tawk event listeners for minimize/maximize
+    setupTawkListeners() {
+      // Retry if Tawk not loaded yet
+      if (!window.Tawk_API) {
+        setTimeout(() => this.setupTawkListeners(), 1000);
+        return;
+      }
+      
+      try {
+        // Listen for Tawk minimize event
+        if (typeof window.Tawk_API.onMinimized === 'function') {
+          window.Tawk_API.onMinimized(() => {
+            // Tawk minimized → Restore BotStitch if it was minimized
+            const saved = sessionStorage.getItem(`botstitch_activeWidget_${this.id}`);
+            if (saved === 'minimized' || saved === null || saved === 'bot') {
+              this.restoreBotStitch();
+            }
+          });
+        }
+        
+        // Listen for Tawk maximize event
+        if (typeof window.Tawk_API.onMaximized === 'function') {
+          window.Tawk_API.onMaximized(() => {
+            // Tawk maximized → Minimize BotStitch if open
+            if (this.chatElement && this.isOpen) {
+              this.close();
+            }
+            this.saveWidgetState('tawk');
+          });
+        }
+      } catch (e) {
+        console.warn('Tawk event listener setup error:', e);
+      }
+    }
+  
+    // 🆕 Restore BotStitch when Tawk minimizes
+    restoreBotStitch() {
+      if (this.chatElement) {
+        this.chatElement.style.display = '';
+        this.chatElement.classList.remove('botstitch-hidden');
+        this.isOpen = true;
+        this.saveWidgetState('bot');
       }
     }
   
@@ -375,6 +429,24 @@
           font-size: 15px;
           font-weight: 600;
           cursor: pointer;
+        }
+        .botstitch-user-form {
+          max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px;
+          margin: 0;
+          overflow: hidden;
+        }
+        .botstitch-user-form * {
+          box-sizing: border-box;
+        }
+        .botstitch-user-form input,
+        .botstitch-user-form select,
+        .botstitch-user-form button {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
         }
         .botstitch-transfer-offer {
           background: #fff3cd;
@@ -912,15 +984,15 @@ showUserForm() {
 
 createFormHTML() {
   const fields = (this.config.userForm && this.config.userForm.fields) || [];
-  let html = '<div class="botstitch-user-form" style="padding: 10px;">';
-  html += '<p style="margin-bottom: 15px; font-weight: 500;">Please fill in your details to start:</p>';
+  let html = '<div class="botstitch-user-form">';
+  html += '<p style="margin-bottom: 15px; font-weight: 500; margin-top: 0;">Please fill in your details to start:</p>';
   
   fields.forEach(field => {
-    html += `<div style="margin-bottom: 12px;">`;
+    html += `<div style="margin-bottom: 12px; width: 100%;">`;
     html += `<label style="display: block; margin-bottom: 4px; font-size: 13px;">${field.label}${field.required ? ' *' : ''}</label>`;
     
     if (field.type === 'select') {
-      html += `<select id="form-${field.name}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" ${field.required ? 'required' : ''}>`;
+      html += `<select id="form-${field.name}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" ${field.required ? 'required' : ''}>`;
       html += `<option value="">Select...</option>`;
       (field.options || []).forEach(opt => {
         html += `<option value="${opt}">${opt}</option>`;
@@ -928,14 +1000,14 @@ createFormHTML() {
       html += `</select>`;
     } else {
       const placeholder = field.placeholder || '';
-      html += `<input type="${field.type}" id="form-${field.name}" placeholder="${placeholder}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" ${field.required ? 'required' : ''}>`;
+      html += `<input type="${field.type}" id="form-${field.name}" placeholder="${placeholder}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" ${field.required ? 'required' : ''}>`;
     }
     
     html += `</div>`;
   });
   
   const submitText = (this.config.userForm && this.config.userForm.submitButtonText) || 'Start Chat';
-  html += `<button onclick="window.BotStitch.widgets.get('${this.id}').submitUserForm()" style="width: 100%; padding: 10px; background: ${this.config.theme.chatWindow.textInput.sendButtonColor}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">${submitText}</button>`;
+  html += `<button onclick="window.BotStitch.widgets.get('${this.id}').submitUserForm()" style="width: 100%; padding: 10px; background: ${this.config.theme.chatWindow.textInput.sendButtonColor}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; box-sizing: border-box; margin-top: 8px;">${submitText}</button>`;
   html += '</div>';
   
   return html;
@@ -1136,10 +1208,16 @@ showTransferPrompt() {
         }
         
         // Hide BotStitch chat window (keep launcher visible)
-        if (this.chatElement) this.chatElement.style.display = 'none';
+        if (this.chatElement) {
+          this.chatElement.style.display = 'none';
+          this.chatElement.classList.add('botstitch-hidden');
+        }
         this.isOpen = false;
         // Save state: Tawk is now active
         this.saveWidgetState('tawk');
+        
+        // Setup Tawk listeners for auto-switch
+        this.setupTawkListeners();
         
         // Show and start Tawk widget
         try {
@@ -1154,8 +1232,14 @@ showTransferPrompt() {
         
         setTimeout(() => {
           try {
+            // Tawk handles full-screen/responsive automatically via its own widget
             if (typeof window.Tawk_API.maximize === 'function') {
               window.Tawk_API.maximize();
+            }
+            // Ensure BotStitch button doesn't interfere (already hidden chat window above)
+            if (this.buttonElement && this.chatElement && this.chatElement.style.display === 'none') {
+              // Button stays visible as fallback, but ensure no z-index conflict
+              this.buttonElement.style.zIndex = '999998'; // Below Tawk (typically 1000000+)
             }
           } catch (e) {
             console.warn('Tawk maximize error:', e);
@@ -1976,6 +2060,7 @@ async triggerHumanTransfer() {
       const messageContent = document.createElement('div');
       messageContent.style.cssText = `
         max-width: 80%;
+        width: 100%;
         padding: 12px 16px;
         border-radius: ${this.config.theme.chatWindow.messageBorderRadius}px;
         background-color: ${sender === 'user' 
@@ -1985,6 +2070,9 @@ async triggerHumanTransfer() {
           ? this.config.theme.chatWindow.userMessage.textColor 
           : this.config.theme.chatWindow.botMessage.textColor};
         word-wrap: break-word;
+        overflow-wrap: break-word;
+        box-sizing: border-box;
+        overflow: hidden;
       `;
 
       if (isHTML && this.config.theme.chatWindow.renderHTML) {
@@ -2094,8 +2182,11 @@ async triggerHumanTransfer() {
     close() {
       if (this.chatElement) {
         this.chatElement.classList.add('botstitch-hidden');
+        this.chatElement.style.display = 'none'; // Ensure hidden
         this.chatElement.classList.remove('botstitch-fade-in');
         this.isOpen = false;
+        // Save state: BotStitch is minimized (not active)
+        this.saveWidgetState('minimized');
       }
     }
 
