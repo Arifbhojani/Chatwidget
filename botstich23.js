@@ -356,6 +356,25 @@
           box-sizing: border-box;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
+        .botstitch-widget.botstitch-chat-window {
+          overflow: hidden !important;
+          max-width: 100vw !important;
+          max-height: 100vh !important;
+        }
+        .botstitch-widget.botstitch-chat-window > * {
+          max-width: 100%;
+          overflow: hidden;
+        }
+        [id*="-messages"] {
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          -webkit-overflow-scrolling: touch;
+        }
+        [id*="-messages"] > * {
+          max-width: 100%;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
         .botstitch-widget svg {
           flex-shrink: 0;
           vertical-align: middle;
@@ -621,6 +640,8 @@
         bottom: ${this.config.theme.button.bottom + this.config.theme.button.size + 10}px;
         width: ${this.config.theme.chatWindow.width}px;
         height: ${this.config.theme.chatWindow.height}px;
+        max-width: ${this.config.theme.chatWindow.width}px;
+        max-height: ${this.config.theme.chatWindow.height}px;
         background-color: ${this.config.theme.chatWindow.backgroundColor};
         border-radius: ${this.config.theme.chatWindow.borderRadiusStyle === 'rounded' ? '12px' : '4px'};
         box-shadow: 0 8px 24px rgba(0,0,0,0.2);
@@ -628,6 +649,8 @@
         display: flex;
         flex-direction: column;
         font-size: ${this.config.theme.chatWindow.fontSize}px;
+        overflow: hidden;
+        box-sizing: border-box;
       `;
 
       if (this.config.theme.chatWindow.showTitle) {
@@ -639,11 +662,16 @@
       messagesContainer.id = `${this.id}-messages`;
       messagesContainer.style.cssText = `
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 16px;
         display: flex;
         flex-direction: column;
         gap: 12px;
+        box-sizing: border-box;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       `;
       chatWindow.appendChild(messagesContainer);
 
@@ -777,6 +805,10 @@
         display: flex;
         gap: 8px;
         align-items: flex-end;
+        box-sizing: border-box;
+        max-width: 100%;
+        overflow: hidden;
+        flex-shrink: 0;
       `;
 
       if (this.config.theme.chatWindow.uploadsConfig.enabled) {
@@ -794,6 +826,7 @@
       input.placeholder = this.config.theme.chatWindow.textInput.placeholder;
       input.style.cssText = `
         flex: 1;
+        min-width: 0;
         background-color: ${this.config.theme.chatWindow.textInput.backgroundColor};
         color: ${this.config.theme.chatWindow.textInput.textColor};
         border: 1px solid #e5e5e5;
@@ -804,6 +837,9 @@
         max-height: 120px;
         font-size: 14px;
         outline: none;
+        box-sizing: border-box;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
       `;
 
       input.addEventListener('keydown', (e) => {
@@ -2060,7 +2096,8 @@ async triggerHumanTransfer() {
       const messageContent = document.createElement('div');
       messageContent.style.cssText = `
         max-width: 80%;
-        width: 100%;
+        width: fit-content;
+        min-width: 0;
         padding: 12px 16px;
         border-radius: ${this.config.theme.chatWindow.messageBorderRadius}px;
         background-color: ${sender === 'user' 
